@@ -1,49 +1,48 @@
 # srvcs-union
 
-The set-union service of the srvcs.cloud distributed standard library.
+## Name
 
-Its single concern: **the union of two sets.** It reads two lists of integers
-and returns the sorted list of distinct values appearing in either list.
+| Field | Value |
+| --- | --- |
+| Service | `srvcs-union` |
+| Slug | `union` |
+| Repository | `srvcs/union` |
+| Package | `srvcs-union` |
+| Kind | `leaf` |
 
-`srvcs-union` is a **leaf**: it depends on no other service and makes no network
-calls. All work is local.
+## Function
 
-```text
-result = sorted distinct values appearing in a or b
-union([1, 2], [2, 3]) == [1, 2, 3]
-```
+sets: union of two sets
+
+## Dependencies
+
+None.
 
 ## API
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` | `/` | Service identity, concern, and dependency list |
-| `POST` | `/` | Compute the union of sets `a` and `b` |
-| `GET` | `/healthz` `/readyz` `/metrics` `/openapi.json` | srvcs service standard surface |
+| `GET` | `/` | Service identity |
+| `POST` | `/` | Evaluate the service function |
+| `GET` | `/healthz` | Liveness probe |
+| `GET` | `/readyz` | Readiness probe |
+| `GET` | `/metrics` | Prometheus metrics |
+| `GET` | `/openapi.json` | OpenAPI document |
 
-```sh
-curl -s -X POST localhost:8080/ -H 'content-type: application/json' -d '{"a": [1, 2], "b": [2, 3]}'
-# {"a":[1,2],"b":[2,3],"result":[1,2,3]}
+## Inputs
 
-curl -s -X POST localhost:8080/ -H 'content-type: application/json' -d '{"a": [3, 3, 1], "b": [1, 2, 2]}'
-# {"a":[3,3,1],"b":[1,2,2],"result":[1,2,3]}
-```
+| Name | Type | Required |
+| --- | --- | --- |
+| `a` | `json[]` | yes |
+| `b` | `json[]` | yes |
 
-Responses:
+## Outputs
 
-- `200 {"a": [...], "b": [...], "result": [...]}` — evaluated. `result` is the
-  sorted list of distinct values appearing in `a` or `b`.
-- `422 {"error": "a and b must be integers"}` — some element of `a` or `b` is
-  not a JSON integer.
-
-Two empty lists yield the empty list. Duplicates collapse, the output is sorted
-ascending, and negatives are ordered correctly.
-
-## Dependencies
-
-None. `srvcs-union` is a leaf set service. Because it owns its own validation, it
-rejects any non-integer element directly with `422` rather than forwarding to a
-dependency.
+| Name | Type |
+| --- | --- |
+| `a` | `json[]` |
+| `b` | `json[]` |
+| `result` | `integer[]` |
 
 ## Configuration
 
@@ -53,7 +52,13 @@ dependency.
 | `SRVCS_ENV` | `development` | Environment label for logs |
 | `RUST_LOG` | `info,tower_http=info` | Tracing filter |
 
-## Local checks
+## Error Behavior
+
+- `422` means the request could not be evaluated for the documented input shape.
+- `503` means a required dependency was unavailable or returned an unexpected response.
+- Dependency validation errors are forwarded when this service delegates validation.
+
+## Local Checks
 
 ```sh
 cargo fmt --check
@@ -61,8 +66,8 @@ cargo clippy --all-targets -- -D warnings
 cargo test
 ```
 
-See [`srvcs/platform`](https://github.com/srvcs/platform) for the shared
-standard.
+See the [srvcs service standard](https://github.com/srvcs/platform/blob/main/STANDARD.md) for the full operational contract.
 
-> Note: the `cargoHash` in `flake.nix` is inherited from the template and must be
-> refreshed with a `nix build` before the Nix gates pass.
+## Metadata
+
+Machine-readable service metadata lives in `srvcs.yaml`. Keep it aligned with this README when the service contract changes.
